@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all": "country:block/one_level_compression_iron_block"
+  }
+}

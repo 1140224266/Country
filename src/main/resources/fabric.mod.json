@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "country",
+  "version": "${version}",
+  "name": "Country",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/country/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "Razier.country.client.CountryClient"
+    ],
+    "main": [
+      "Razier.country.Country"
+    ]
+  },
+  "mixins": [
+    "country.mixins.json",
+    {
+      "config": "country.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

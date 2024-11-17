@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "Razier.country.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "ChestBlockEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

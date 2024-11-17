@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "country:block/one_level_compression_iron_block" }
+  }
+}

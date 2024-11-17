@@ -1,0 +1,16 @@
+{
+  "mappings": {
+    "Razier/country/mixin/ChestBlockEntityMixin": {
+      "getInvStackList": "method_11282()Lnet/minecraft/class_2371;",
+      "setInvStackList": "method_11281(Lnet/minecraft/class_2371;)V"
+    }
+  },
+  "data": {
+    "named:intermediary": {
+      "Razier/country/mixin/ChestBlockEntityMixin": {
+        "getInvStackList": "method_11282()Lnet/minecraft/class_2371;",
+        "setInvStackList": "method_11281(Lnet/minecraft/class_2371;)V"
+      }
+    }
+  }
+}
