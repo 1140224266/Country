@@ -29,7 +29,7 @@ public class FindChestAndChangeItemGoal extends MoveToTargetPosGoal {
             this.cooldown--;
             return false;
         } else {
-            this.cooldown = 10;
+            this.cooldown = 100;
             return this.findTargetPos();
         }
     }
@@ -61,7 +61,7 @@ public class FindChestAndChangeItemGoal extends MoveToTargetPosGoal {
     public void putItemsInChest(BlockPos chestPos,DefaultedList<ItemStack> itemStacks){
         int sum_a=0;
 
-        DefaultedList<ItemStack> inventory = this.entity.inventory.stacks;  //提取背包内的物品列表
+        DefaultedList<ItemStack> inventory = this.entity.getInventory().stacks;  //提取背包内的物品列表
 
         Object[] temp = itemStacks.toArray();     //将列表转化为Object数组
         int sum = 0;
