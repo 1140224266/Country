@@ -1,251 +1,120 @@
 package Razier.country.entity;
 
-import Razier.country.MethodLogger;
-import Razier.country.entity.goal.*;
-import com.google.common.collect.ImmutableSet;
-import net.minecraft.block.Blocks;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.InventoryOwner;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.mob.*;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
 import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldView;
-
-import java.util.Objects;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.EntityPose;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityDimensions;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.ai.goal.SwimGoal;
+import net.minecraft.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.entity.ai.goal.LookAtEntityGoal;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.item.Item;
+import net.minecraft.entity.ItemEntity;
+import net.minecraft.entity.ai.brain.Activity;
+import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.item.Items;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.entity.LivingEntity;
+import java.util.List;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.item.FoodComponent;
+import net.minecraft.entity.player.HungerManager;
+import net.minecraft.entity.ai.goal.ActiveTargetGoal;
+import Razier.country.entity.ModHungerManager;
+import net.minecraft.item.SwordItem;
+import net.minecraft.item.AxeItem;
+import Razier.country.entity.goals.LootChestGoal;
+import net.minecraft.entity.mob.HostileEntity;
 
 public class KillerEntity extends PathAwareEntity implements InventoryOwner {
+    private static final Set<Item> GATHERABLE_ITEMS = new HashSet<>();
+    private static final Set<Item> FIGHT_ITEMS = new HashSet<>();
+    private static final Set<Item> FOOD_ITEMS = new HashSet<>();
+    
+    static {
+        // 怪物掉落物
+        GATHERABLE_ITEMS.add(Items.ROTTEN_FLESH);
+        GATHERABLE_ITEMS.add(Items.BONE);
+        GATHERABLE_ITEMS.add(Items.STRING);
+        GATHERABLE_ITEMS.add(Items.SPIDER_EYE);
+        GATHERABLE_ITEMS.add(Items.GUNPOWDER);
+        GATHERABLE_ITEMS.add(Items.ENDER_PEARL);
+        GATHERABLE_ITEMS.add(Items.BLAZE_ROD);
+        GATHERABLE_ITEMS.add(Items.GHAST_TEAR);
+        GATHERABLE_ITEMS.add(Items.SLIME_BALL);
+        GATHERABLE_ITEMS.add(Items.MAGMA_CREAM);
+        GATHERABLE_ITEMS.add(Items.PHANTOM_MEMBRANE);
+        GATHERABLE_ITEMS.add(Items.PRISMARINE_SHARD);
+        GATHERABLE_ITEMS.add(Items.PRISMARINE_CRYSTALS);
+        GATHERABLE_ITEMS.add(Items.SHULKER_SHELL);
+        
+        // 所有种类的剑
+        FIGHT_ITEMS.add(Items.WOODEN_SWORD);
+        FIGHT_ITEMS.add(Items.STONE_SWORD);
+        FIGHT_ITEMS.add(Items.IRON_SWORD);
+        FIGHT_ITEMS.add(Items.GOLDEN_SWORD);
+        FIGHT_ITEMS.add(Items.DIAMOND_SWORD);
+        FIGHT_ITEMS.add(Items.NETHERITE_SWORD);
+        
+        // 安全食物（排除有负面效果的）
+        FOOD_ITEMS.add(Items.BREAD);
+        FOOD_ITEMS.add(Items.APPLE);
+        FOOD_ITEMS.add(Items.BAKED_POTATO);
+        FOOD_ITEMS.add(Items.COOKED_BEEF);
+        FOOD_ITEMS.add(Items.COOKED_CHICKEN);
+        FOOD_ITEMS.add(Items.COOKED_MUTTON);
+        FOOD_ITEMS.add(Items.COOKED_PORKCHOP);
+        FOOD_ITEMS.add(Items.COOKED_RABBIT);
+        FOOD_ITEMS.add(Items.COOKED_COD);
+        FOOD_ITEMS.add(Items.COOKED_SALMON);
+    }
+    
+    private int birthPositionX;
+    private int birthPositionY;
+    private int birthPositionZ;
+    private boolean first_time = false;
+    private final int defenceDistance = 32;
+    private int[] cooldown = new int[6];
+    private SimpleInventory inventory;
+    private Activity currentBehavior = null;
+    private Entity currentTarget = null;
+    private BlockPos currentDestination = null;
+    private int behaviorTimer = 0;
+    private ModHungerManager hungerManager = new ModHungerManager();
 
-    public int birthPositionX;
-    public int birthPositionY;
-    public int birthPositionZ;
-    public int defenceDistance=32;
-    public boolean first_time=false;
-    public static final Set<Item> GATHERABLE_ITEMS = ImmutableSet.of(
-            Items.IRON_INGOT, Items.ROTTEN_FLESH , Items.BONE, Items.STRING, Items.SLIME_BALL, Items.BLAZE_ROD, Items.NETHER_STAR, Items.REDSTONE, Items.GLOWSTONE,Items.SPIDER_EYE,Items.MAGMA_CREAM,Items.GHAST_TEAR,Items.PHANTOM_MEMBRANE
-    );
-    public static final Set<Item> FOOD_ITEMS = ImmutableSet.of(Items.APPLE, Items.BAKED_POTATO, Items.BEEF, Items.BEETROOT, Items.BEETROOT_SOUP, Items.BREAD, Items.CARROT, Items.CHICKEN, Items.CHORUS_FRUIT, Items.COD, Items.COOKED_BEEF, Items.COOKED_CHICKEN, Items.COOKED_COD, Items.COOKED_MUTTON, Items.COOKED_PORKCHOP, Items.COOKED_RABBIT, Items.COOKED_SALMON, Items.COOKIE, Items.DRIED_KELP, Items.ENCHANTED_GOLDEN_APPLE, Items.GOLDEN_APPLE, Items.GOLDEN_CARROT, Items.HONEY_BOTTLE, Items.MELON_SLICE, Items.MUSHROOM_STEW, Items.MUTTON, Items.POISONOUS_POTATO, Items.PORKCHOP, Items.POTATO, Items.PUFFERFISH, Items.PUMPKIN_PIE, Items.RABBIT, Items.RABBIT_STEW, Items.SALMON, Items.SUSPICIOUS_STEW, Items.SWEET_BERRIES, Items.GLOW_BERRIES, Items.TROPICAL_FISH
-    );
-    public static final Set<Item> FIGHT_ITEMS = ImmutableSet.of(Items.WOODEN_SWORD,Items.STONE_SWORD,Items.IRON_SWORD,Items.GOLDEN_SWORD,Items.DIAMOND_SWORD,Items.NETHERITE_SWORD);//Items.WOODEN_PICKAXE,Items.STONE_PICKAXE,Items.IRON_PICKAXE,Items.GOLDEN_PICKAXE,Items.DIAMOND_PICKAXE,Items.NETHERITE_PICKAXE);
-    MethodLogger logger = new MethodLogger();
-    private boolean removed=false;
-    public SimpleInventory inventory = new SimpleInventory(36);
-
-    /*
-      1.在释放点周围游荡（能回到释放点）
-      2.伤害敌对生物
-      3.会愤怒（套用原版iron_golem）
-      4.能拾取物品
-     */
-
-    public KillerEntity(EntityType<? extends PathAwareEntity> entityType, World world) {
+    protected KillerEntity(EntityType<? extends PathAwareEntity> entityType, World world) {
         super(entityType, world);
+        this.setCanPickUpLoot(true);
+        this.setPersistent();
+        this.setCustomNameVisible(true);
+        this.experiencePoints = 50;
+        this.inventory = new SimpleInventory(27);
     }
 
-    //尝试攻击
-    /*@Override
-    public boolean tryAttack(Entity target) {
-        this.getWorld().sendEntityStatus(this, EntityStatuses.PLAY_ATTACK_SOUND);
-        float f = this.AttackDamage;
-        float g = f;
-        boolean bl = target.damage(this.getDamageSources().mobAttack(this), g);
-        /*if (bl) {
-            double d = target instanceof LivingEntity livingEntity ? livingEntity.getAttributeValue(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE) : 0.0;
-            double e = Math.max(0.0, 1.0 - d);
-            target.setVelocity(target.getVelocity().add(0.0, 0.4F * e, 0.0));
-            this.applyDamageEffects(this, target);
-        }*/
-/*
-        this.playSound(SoundEvents.ENTITY_PLAYER_ATTACK_CRIT, 1.0F, 1.0F);
-        return bl;
-    }*/
-
-
-
-    @Override
-    public ActionResult interactMob(PlayerEntity player, Hand hand){
-
-        return ActionResult.success(this.getWorld().isClient);
-    }
-
-
-    //设置目标
-    @Override
-    protected void initGoals() {
-        this.goalSelector.add(1, new MoveToBirthPositionGoal<KillerEntity>(this.birthPositionX,this.birthPositionY,this.birthPositionZ,this , 1.0, 128 ,30));
-        this.goalSelector.add(2, new ModAttackGoal(this, 1.2, true));  //近战攻击行为
-        this.goalSelector.add(3,new ChaseItemEntityGoal(this,1.0,32,3));
-        this.goalSelector.add(4,new FindChestAndChangeItemGoal(this,1,24,24));
-        this.goalSelector.add(5, new WanderAroundGoal(this, 1.0));
-        //this.goalSelector.add(4, new IronGolemWanderAroundGoal(this, 0.6));
-        //this.goalSelector.add(5, new IronGolemLookGoal(this));
-        this.goalSelector.add(7, new LookAtEntityGoal(this, PlayerEntity.class, 6.0F));
-        this.goalSelector.add(8, new LookAroundGoal(this));
-        //this.targetSelector.add(1, new TrackIronGolemTargetGoal(this));
-        this.targetSelector.add(1, new RevengeGoal(this).setGroupRevenge(ZombifiedPiglinEntity.class));
-        this.targetSelector
-                .add(3, new ActiveTargetGoal<>(this, MobEntity.class, 5, false, false, entity -> entity instanceof Monster && !(entity instanceof CreeperEntity)));
-        //this.targetSelector.add(4, new ActiveTargetGoal(this, ItemEntity.class,5,false,false,entity -> entity instanceof ItemEntity));
-
-    }
-
-    public static DefaultAttributeContainer.Builder creatKillerAttributes(){
-        return MobEntity.createMobAttributes()
-                .add(EntityAttributes.GENERIC_MAX_HEALTH,25)
-                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED,0.32f)
-                .add(EntityAttributes.GENERIC_ARMOR,0f)
-                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE,3);
-    }
-    //保存数据
-    @Override
-    public void writeCustomDataToNbt(NbtCompound nbt) {
-        super.writeCustomDataToNbt(nbt);
-        nbt.putInt("BirthPositionX", this.birthPositionX);
-        nbt.putInt("BirthPositionY", this.birthPositionY);
-        nbt.putInt("BirthPositionZ", this.birthPositionZ);
-
-    }
-
-    /*public boolean wantItem(DefaultedList<ItemStack> item){
-        for (ItemStack a : item){
-            //if (this.getEquippedStack(EquipmentSlot.HEAD).getItem().getRecipeRemainder())
-        }
-    }*/
-
-    /*public Item getItemLevel(Item a1,Item a2){
-        return
-    }*/
-
-    //读取数据
-    @Override
-    public void readCustomDataFromNbt(NbtCompound nbt) {
-        super.readCustomDataFromNbt(nbt);
-        this.birthPositionX =nbt.getInt("BirthPositionX");
-        this.birthPositionY =nbt.getInt("BirthPositionY");
-        this.birthPositionZ =nbt.getInt("BirthPositionZ");
-
-    }
-
-    @Override
-    public boolean canPickUpLoot(){
-
-        return true;
-    }
-
-    public static Item preferFightItem(Item a , Item b){
-        if (b==Items.AIR&&a!=Items.AIR)
-            return a;
-        /*if (b==Items.AIR){
-            return a;
-        }*/
-        int preference_a=0;
-        int preference_b=0;
-
-        Item[] item = FIGHT_ITEMS.toArray(new Item[0]);
-        for (int i = 0 ; i < FIGHT_ITEMS.size() ; i ++)
-        {
-            if (a==item[i])
-                preference_a=i+1;
-            if (b==item[i])
-                preference_b=i+1;
-
-        }
-        return preference_a<preference_b?b:a;
-
-    }
-
-    public void setMainHandItem(String s){
-
-
-        if (Objects.equals(s, "fight"))
-        {
-            for (int i = 0 ; i < inventory.size() ; i ++){
-                for (int j = 0 ; j <= FIGHT_ITEMS.size() ; j++)
-                {
-                    ItemStack mainHandItem = this.getMainHandStack();
-                    ItemStack itemStack = inventory.getStack(i);
-                    Item item1 = mainHandItem.getItem();
-                    Item item2 = inventory.getStack(i).getItem();
-                    if(FIGHT_ITEMS.contains(item2));
-                    {
-                        if (preferFightItem(item1,item2) == item2)
-                        {
-                            this.setStackInHand(Hand.MAIN_HAND,itemStack);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    //---------------------------ACTION---------------------------
-    @Override
-    public void tickMovement() {
-
-        super.tickMovement();
-        if (!first_time)
-        {
-            this.birthPositionX= (int) this.getX();
-            this.birthPositionY= (int) this.getY();
-            this.birthPositionZ= (int) this.getZ();
-            first_time=true;
-
-        }
-
-        BlockPos pos = this.getBlockPos();
-        WorldView world = this.getWorld();
-        if (world.getBlockState(pos.down(1)).isOf(Blocks.CHEST)){
-            this.getNavigation().stop();
-        }
-
-        this.setMainHandItem("fight");
-        /*int x1=this.birthPositionX;
-        int y1=this.birthPositionY;
-        int z1=this.birthPositionZ;
-        int x0= (int) this.getX();
-        int y0= (int) this.getY();
-        int z0= (int) this.getZ();
-        double distance = sqrt(pow(x1-x0,2)+pow(y1-y0,2)+pow(z1-z0,2));
-        if (distance<defenceDistance&&!removed){
-            Set<PrioritizedGoal> goals = this.goalSelector.getGoals();
-            for (PrioritizedGoal a : goals)
-            {
-                if(a.getGoal() instanceof MoveToBirthPositionGoal<?>){
-                    MethodLogger.add("tickMovement",0,"find out");
-                    this.goalSelector.remove(a.getGoal());
-                    MethodLogger.add("tickMovement",0,"remove goal successfully");
-
-                    System.out.println("find out");
-
-                }
-            }
-            removed=true;
-        }不允许修改。。。。*/
-    }
-    //---------------------------ACTION---------------------------
-
-
-    public int getBirthPositionX(){
-        return birthPositionX;
-    }
-
-    public int getBirthPositionY(){
-        return birthPositionY;
-    }
-    public int getBirthPositionZ(){
-        return birthPositionZ;
+    public static DefaultAttributeContainer.Builder createKillerAttributes() {
+        return HostileEntity.createHostileAttributes()
+            .add(EntityAttributes.GENERIC_FOLLOW_RANGE, 32.0)
+            .add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0)          // 增加生命值到40
+            .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.35f)     // 提高移动速度
+            .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0)        // 提高基础攻击力
+            .add(EntityAttributes.GENERIC_ARMOR, 4.0)                // 增加护甲值
+            .add(EntityAttributes.GENERIC_ARMOR_TOUGHNESS, 2.0)      // 添加护甲韧性
+            .add(EntityAttributes.GENERIC_KNOCKBACK_RESISTANCE, 0.6) // 提高击退抗性
+            .add(EntityAttributes.GENERIC_ATTACK_KNOCKBACK, 1.0);     // 添加击退力
     }
 
     @Override
@@ -254,42 +123,345 @@ public class KillerEntity extends PathAwareEntity implements InventoryOwner {
     }
 
     @Override
-    public void loot(ItemEntity item){
+    protected void initGoals() {
+        super.initGoals();
+        this.goalSelector.add(1, new SwimGoal(this));
+        this.goalSelector.add(2, new LootChestGoal(this));
+        this.goalSelector.add(3, new MeleeAttackGoal(this, 1.2D, false));
+        
+        // 将目标选择器改为只针对敌对生物
+        this.targetSelector.add(1, new ActiveTargetGoal<>(this, HostileEntity.class, true));
+    }
+
+    @Override
+    public boolean canPickupItem(ItemStack stack) {
+        return !stack.isEmpty() && (GATHERABLE_ITEMS.contains(stack.getItem()) || 
+               FIGHT_ITEMS.contains(stack.getItem()) || 
+               FOOD_ITEMS.contains(stack.getItem()));
+    }
+
+    @Override
+    protected void loot(ItemEntity item) {
         InventoryOwner.pickUpItem(this, this, item);
     }
 
     @Override
-    public boolean canGather(ItemStack stack){
+    protected void dropEquipment(DamageSource source, int lootingMultiplier, boolean allowDrops) {
+        super.dropEquipment(source, lootingMultiplier, allowDrops);
+        // 死亡时掉落物品栏中的物品
+        for (int i = 0; i < this.inventory.size(); i++) {
+            ItemStack stack = this.inventory.getStack(i);
+            if (!stack.isEmpty()) {
+                this.dropStack(stack);
+            }
+        }
+    }
+
+    @Override
+    public boolean canImmediatelyDespawn(double distanceSquared) {
+        return false; // 防止实体消失
+    }
+
+    @Override
+    public boolean isFireImmune() {
+        return false; // 免疫火焰伤害
+    }
+
+    @Override
+    protected float getActiveEyeHeight(EntityPose pose, EntityDimensions dimensions) {
+        return 1.74F; // 设置眼睛高度
+    }
+
+    @Override
+    public int getXpToDrop() {
+        return this.experiencePoints;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        
+        // 更新饱食度和生命恢复
+        hungerManager.update(this);
+        if (this.age % 10 == 0) {  // 每10tick更新一次
+            // 模拟玩家的饱食度自然消耗
+            if (this.isMoving()) {
+                hungerManager.addExhaustion(0.01F);
+            }
+        }
+        
+        // 生命恢复逻辑
+        if (hungerManager.getFoodLevel() >= 18 && this.getHealth() < this.getMaxHealth()) {
+            if (this.age % 20 == 0) {  // 每4秒回复1点生命值
+                this.heal(1.0F);
+                hungerManager.addExhaustion(3.0F);
+                System.out.println(hungerManager.getExhaustion());
+                System.out.println(hungerManager.getFoodLevel());
+                System.out.println(hungerManager.getSaturationLevel());
+            }
+        }
+        
+        // 当饱食度低时尝试吃东西
+        if (hungerManager.getFoodLevel() < 20) {
+            tryEat();
+        }
+        
+        // 第一次tick时记录出生点位置
+        if (!first_time) {
+            birthPositionX = (int) this.getX();
+            birthPositionY = (int) this.getY();
+            birthPositionZ = (int) this.getZ();
+            first_time = true;
+        }
+
+        // 行为优先级处理系统
+        if (--behaviorTimer <= 0) {
+            // 优先级1：返回出生点
+            double distanceFromBirth = this.squaredDistanceTo(birthPositionX, birthPositionY, birthPositionZ);
+            if (distanceFromBirth > defenceDistance * defenceDistance) {
+                currentBehavior = Activity.IDLE;
+                currentDestination = new BlockPos(birthPositionX, birthPositionY, birthPositionZ);
+                this.getNavigation().startMovingTo(birthPositionX, birthPositionY, birthPositionZ, 1.0);
+                behaviorTimer = 100;  // 5秒冷却
+                return;
+            }
+
+            // 优先级2：战斗行为
+            Box searchBox = this.getBoundingBox().expand(16.0);
+            List<Entity> nearbyEntities = this.getWorld().getEntitiesByClass(
+                Entity.class, 
+                searchBox,
+                entity -> entity instanceof Monster && !(entity instanceof KillerEntity)
+            );
+            
+            if (!nearbyEntities.isEmpty()) {
+                currentBehavior = Activity.FIGHT;
+                currentTarget = nearbyEntities.get(0);
+                this.setTarget((LivingEntity)currentTarget);
+                behaviorTimer = 60;  // 3秒冷却
+                return;
+            }
+
+            // 优先级3：收集物品
+            List<ItemEntity> items = this.getWorld().getEntitiesByClass(
+                ItemEntity.class,
+                this.getBoundingBox().expand(12.0),  // 增加检测范围
+                item -> canPickupItem(item.getStack())
+            );
+
+            if (!items.isEmpty()) {
+                ItemEntity nearestItem = items.get(0);
+                currentBehavior = Activity.IDLE;
+                currentDestination = nearestItem.getBlockPos();
+                this.getNavigation().startMovingTo(nearestItem.getX(), nearestItem.getY(), nearestItem.getZ(), 1.0);
+                behaviorTimer = 40;  // 2秒冷却
+                return;
+            }
+
+            // 优先级4：存储物品
+            if (shouldStoreItems()) {
+                Box chestSearchBox = this.getBoundingBox().expand(8.0);
+                BlockPos nearestChest = findNearestChest(chestSearchBox);
+                
+                if (nearestChest != null) {
+                    currentBehavior = Activity.WORK;
+                    currentDestination = nearestChest;
+                    this.getNavigation().startMovingTo(nearestChest.getX(), nearestChest.getY(), nearestChest.getZ(), 1.0);
+                    behaviorTimer = 80;  // 4秒冷却
+                    
+                    // 当靠近箱子时执行存储
+                    if (this.squaredDistanceTo(Vec3d.of(nearestChest)) < 2.0) {
+                        storeItemsInChest(nearestChest);
+                    }
+                }
+            }
+        }
+
+        // 每tick都更新佳武器装备
+        updateBestWeapon();
+    }
+
+    private boolean shouldStoreItems() {
+        int foodCount = 0;
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (FOOD_ITEMS.contains(stack.getItem())) {
+                foodCount += stack.getCount();
+            }
+        }
+        return foodCount > 64 || inventory.size() > 20; // 如果食物超过64个或背包快满了
+    }
+
+    private BlockPos findNearestChest(Box searchBox) {
+        BlockPos entityPos = this.getBlockPos();
+        BlockPos nearestChest = null;
+        double nearestDistance = Double.MAX_VALUE;
+
+        for (int x = (int)searchBox.minX; x < (int)searchBox.maxX; x++) {
+            for (int y = (int)searchBox.minY; y < (int)searchBox.maxY; y++) {
+                for (int z = (int)searchBox.minZ; z < (int)searchBox.maxZ; z++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    if (this.getWorld().getBlockEntity(pos) instanceof ChestBlockEntity) {
+                        double distance = pos.getSquaredDistance(entityPos);
+                        if (distance < nearestDistance) {
+                            nearestDistance = distance;
+                            nearestChest = pos;
+                        }
+                    }
+                }
+            }
+        }
+        return nearestChest;
+    }
+
+    private void storeItemsInChest(BlockPos chestPos) {
+        BlockEntity blockEntity = this.getWorld().getBlockEntity(chestPos);
+        if (!(blockEntity instanceof ChestBlockEntity)) return;
+        
+        ChestBlockEntity chest = (ChestBlockEntity)blockEntity;
+        ItemStack mainHandItem = this.getMainHandStack();
+        
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (!stack.isEmpty() && !stack.equals(mainHandItem)) {
+                if (FOOD_ITEMS.contains(stack.getItem())) {
+                    // 保留64个食物
+                    if (countFoodItems() > 64) {
+                        transferToChest(stack, chest);
+                    }
+                } else {
+                    // 其他物品都存入箱子
+                    transferToChest(stack, chest);
+                }
+            }
+        }
+    }
+
+    private int countFoodItems() {
+        int count = 0;
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (FOOD_ITEMS.contains(stack.getItem())) {
+                count += stack.getCount();
+            }
+        }
+        return count;
+    }
+
+    private void transferToChest(ItemStack stack, ChestBlockEntity chest) {
+        // 遍历箱子的所有槽位
+        for (int slot = 0; slot < 27; slot++) {  // 单个箱子有27个槽位
+            ItemStack chestStack = chest.getStack(slot);
+            
+            // 如果箱子槽位为空，直接放入物品
+            if (chestStack.isEmpty()) {
+                chest.setStack(slot, stack.copy());
+                stack.setCount(0);
+                return;
+            }
+            
+            // 如果是相同物品且未达到堆叠上限，尝试合并
+            if (ItemStack.canCombine(chestStack, stack)) {
+                int spaceLeft = chestStack.getMaxCount() - chestStack.getCount();
+                if (spaceLeft > 0) {
+                    int transferAmount = Math.min(spaceLeft, stack.getCount());
+                    chestStack.increment(transferAmount);
+                    stack.decrement(transferAmount);
+                    
+                    if (stack.isEmpty()) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private void updateBestWeapon() {
+        ItemStack currentMainHand = this.getMainHandStack();
+        ItemStack bestWeapon = currentMainHand;
+        int bestPower = getWeaponPower(currentMainHand);
+
+        // 检查背包中所有物品
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (FIGHT_ITEMS.contains(stack.getItem())) {
+                int power = getWeaponPower(stack);
+                if (power > bestPower) {
+                    bestPower = power;
+                    bestWeapon = stack;
+                }
+            }
+        }
+
+        // 如果找到更好的武器，则装备它
+        if (bestWeapon != currentMainHand) {
+            this.equipStack(EquipmentSlot.MAINHAND, bestWeapon);
+        }
+    }
+
+    private int getWeaponPower(ItemStack stack) {
+        if (stack.isEmpty()) return 0;
+        
         Item item = stack.getItem();
-        return (GATHERABLE_ITEMS.contains(item) || FIGHT_ITEMS.contains(item));
+        if (item == Items.WOODEN_SWORD) return 1;
+        if (item == Items.STONE_SWORD) return 2;
+        if (item == Items.IRON_SWORD) return 3;
+        if (item == Items.GOLDEN_SWORD) return 1;
+        if (item == Items.DIAMOND_SWORD) return 4;
+        if (item == Items.NETHERITE_SWORD) return 5;
+        return 0;
     }
 
-    //---------------------------angry---------------------------
-/*
-    @Override
-    public void chooseRandomAngerTime() {
-        this.setAngerTime(ANGER_TIME_RANGE.get(this.random));
+    private void tryEat() {
+        SimpleInventory inventory = this.getInventory();
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (stack.getItem().isFood()) {  // 使用原版的食物判断
+                FoodComponent food = stack.getItem().getFoodComponent();
+                if (food != null) {
+                    hungerManager.eat(stack.getItem(), stack);
+                    stack.decrement(1);
+                    break;
+                }
+            }
+        }
     }
 
+    // 保存饱食度数据
     @Override
-    public void setAngerTime(int angerTime) {
-        this.angerTime = angerTime;
+    public NbtCompound writeNbt(NbtCompound nbt) {
+        super.writeNbt(nbt);
+        NbtCompound hungerNbt = new NbtCompound();
+        hungerManager.writeNbt(hungerNbt);
+        nbt.put("Hunger", hungerNbt);
+        return nbt;
     }
 
+    // 读取饱食度数据
     @Override
-    public int getAngerTime() {
-        return this.angerTime;
+    public void readNbt(NbtCompound nbt) {
+        super.readNbt(nbt);
+        if (nbt.contains("Hunger")) {
+            hungerManager.readNbt(nbt.getCompound("Hunger"));
+        }
     }
 
-    @Override
-    public void setAngryAt(@Nullable UUID angryAt) {
-        this.angryAt = angryAt;
+    // 添加辅助方法判断实体是否在移动
+    private boolean isMoving() {
+        return this.getVelocity().lengthSquared() > 0.0001D;
     }
 
-    @Nullable
-    @Override
-    public UUID getAngryAt() {
-        return this.angryAt;
-    }*/
-    //---------------------------angry---------------------------
+    // 辅助方法
+    public boolean hasWeapon() {
+        return !getMainHandStack().isEmpty() && (getMainHandStack().getItem() instanceof SwordItem 
+            || getMainHandStack().getItem() instanceof AxeItem);
+    }
+
+    public boolean hasFood() {
+        SimpleInventory inv = getInventory();
+        for (int i = 0; i < inv.size(); i++) {
+            if (inv.getStack(i).isFood()) return true;
+        }
+        return false;
+    }
 }

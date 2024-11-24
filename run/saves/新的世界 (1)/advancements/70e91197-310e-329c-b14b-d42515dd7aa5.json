@@ -1,0 +1,15 @@
+{
+  "minecraft:recipes/brewing/fermented_spider_eye": {
+    "criteria": {
+      "has_spider_eye": "2024-11-20 14:07:11 +0800"
+    },
+    "done": true
+  },
+  "minecraft:recipes/decorations/crafting_table": {
+    "criteria": {
+      "unlock_right_away": "2024-11-20 14:07:11 +0800"
+    },
+    "done": true
+  },
+  "DataVersion": 3465
+}

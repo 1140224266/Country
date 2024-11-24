@@ -18,4 +18,8 @@ public class ModEntities {
             new Identifier(Country.MOD_ID,"killer"),
             FabricEntityTypeBuilder.create(SpawnGroup.CREATURE,KillerEntity::new)
                     .dimensions(EntityDimensions.fixed(0.6f,1.8f)).build());
+    public  static final EntityType<TEST> TEST = Registry.register(Registries.ENTITY_TYPE,
+            new Identifier(Country.MOD_ID,"test"),
+            FabricEntityTypeBuilder.create(SpawnGroup.CREATURE,TEST::new)
+                    .dimensions(EntityDimensions.fixed(0.6f,1.8f)).build());
 }

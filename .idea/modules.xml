@@ -14,6 +14,9 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Razier.Country1.0.0.3.client.iml" filepath="$PROJECT_DIR$/.idea/modules/Razier.Country1.0.0.3.client.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Razier.Country1.0.0.3.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Razier.Country1.0.0.3.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Razier.Country1.0.0.3.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Razier.Country1.0.0.3.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/code.Country1.0.0.3.client.iml" filepath="$PROJECT_DIR$/.idea/modules/code.Country1.0.0.3.client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/code.Country1.0.0.3.main.iml" filepath="$PROJECT_DIR$/.idea/modules/code.Country1.0.0.3.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/code.Country1.0.0.3.test.iml" filepath="$PROJECT_DIR$/.idea/modules/code.Country1.0.0.3.test.iml" />
     </modules>
   </component>
 </project>
