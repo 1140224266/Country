@@ -4,6 +4,7 @@ import Razier.country.block.BlockRegister;
 import Razier.country.entity.Farmer;
 import Razier.country.entity.KillerEntity;
 import Razier.country.entity.ModEntities;
+import Razier.country.entity.TEST;
 import Razier.country.item.Register;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -30,7 +31,8 @@ public class Country implements ModInitializer {
     @Override
     public void onInitialize() {
         FabricDefaultAttributeRegistry.register(ModEntities.FARMER,Farmer.createMobAttributes());
-        FabricDefaultAttributeRegistry.register(ModEntities.KILLER, KillerEntity.creatKillerAttributes());
+        FabricDefaultAttributeRegistry.register(ModEntities.KILLER, KillerEntity.createKillerAttributes());
+        FabricDefaultAttributeRegistry.register(ModEntities.TEST, TEST.creatTestAttributes());
         Register.Register();
         BlockRegister.register();
         //添加到物品组

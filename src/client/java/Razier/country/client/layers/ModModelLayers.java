@@ -11,5 +11,5 @@ import java.util.Set;
 public class ModModelLayers {
     public static final EntityModelLayer FARMER = new EntityModelLayer(new Identifier(Country.MOD_ID,"farmer"),"main");
     public static final EntityModelLayer KILLER = new EntityModelLayer(new Identifier(Country.MOD_ID,"killer"),"main");
-
+    public static final EntityModelLayer TEST = new EntityModelLayer(new Identifier(Country.MOD_ID,"test"),"main");
 }
